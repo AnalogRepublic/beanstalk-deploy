@@ -171,7 +171,7 @@ function deployNewVersion(application, environmentName, versionLabel, versionDes
     }).then(result => {
         expect(200, result);
 
-        let versionsList = versionResult.data.DescribeApplicationVersionsResponse.DescribeApplicationVersionsResult.ApplicationVersions;
+        let versionsList = result.data.DescribeApplicationVersionsResponse.DescribeApplicationVersionsResult.ApplicationVersions;
         let versionExists = versionsList.length === 1;
 
         if (versionExists) {
