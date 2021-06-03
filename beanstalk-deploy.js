@@ -129,6 +129,14 @@ function expect(status, result, extraErrorMessage) {
     }
 }
 
+function promiseTimeout(time) {
+    return new Promise(function(resolve) {
+        setTimeout(function() {
+            resolve(time);
+        }, time);
+    });
+}
+
 //Uploads zip file, creates new version and deploys it
 function deployNewVersion(application, environmentName, versionLabel, versionDescription, file, waitUntilDeploymentIsFinished, waitForRecoverySeconds) {
 
@@ -165,8 +173,10 @@ function deployNewVersion(application, environmentName, versionLabel, versionDes
             process.exit(0);
         }
 
-        console.log(`Checking new application version exists.`);
-
+    }).then(() => {
+        console.log(`Waiting for 2 seconds`);
+        return promiseTimeout(2000);
+    }).then(() => {
         return getApplicationVersion(application, versionLabel);
     }).then(result => {
         expect(200, result);
