@@ -165,39 +165,19 @@ function deployNewVersion(application, environmentName, versionLabel, versionDes
             process.exit(0);
         }
 
-        return new Promise((resolve, reject) => {
-            let tries = 0;
+        console.log(`Checking new application version exists.`);
 
-            console.log(`Checking new application version exists.`);
+        return getApplicationVersion(application, versionLabel);
+    }).then(result => {
+        expect(200, result);
 
-            while (true) {
-                let versionCheck = getApplicationVersion(application, versionLabel)
-                    .then(versionResult => {
-                        expect(200, versionResult);
+        let versionsList = versionResult.data.DescribeApplicationVersionsResponse.DescribeApplicationVersionsResult.ApplicationVersions;
+        let versionExists = versionsList.length === 1;
 
-                        let versionsList = versionResult.data.DescribeApplicationVersionsResponse.DescribeApplicationVersionsResult.ApplicationVersions;
-                        let versionExists = versionsList.length === 1;
+        if (versionExists) {
+            throw `Application version ${versionLabel} doesn't exist`;
+        }
 
-                        if (versionExists) {
-                            resolve();
-                            return true;
-                        }
-
-                        if (versionExists === false && tries >= 3) {
-                            throw "Application version doesn't exist";
-                        }
-
-                        tries++;
-                    })
-                    .catch(reject);
-
-                if (versionCheck === true) {
-                    break;
-                }
-            }
-
-        });
-    }).then(() => {
         deployStart = new Date();
         console.log(`Starting deployment of version ${versionLabel} to environment ${environmentName}`);
         return deployBeanstalkVersion(application, environmentName, versionLabel, waitForRecoverySeconds);
