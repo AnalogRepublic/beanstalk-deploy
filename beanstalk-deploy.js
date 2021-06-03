@@ -157,13 +157,47 @@ function deployNewVersion(application, environmentName, versionLabel, versionDes
         expect(200, result);
         console.log(`New build successfully uploaded to S3, bucket=${bucket}, key=${s3Key}`);
         return createBeanstalkVersion(application, bucket, s3Key, versionLabel, versionDescription);
-    }).then(result => {
+    }).then(result => {
         expect(200, result);
         console.log(`Created new application version ${versionLabel} in Beanstalk.`);
         if (!environmentName) {
             console.log(`No environment name given, so exiting now without deploying the new version ${versionLabel} anywhere.`);
             process.exit(0);
         }
+
+        return new Promise((resolve, reject) => {
+            let tries = 0;
+
+            console.log(`Checking new application version exists.`);
+
+            while (true) {
+                let versionCheck = getApplicationVersion(application, versionLabel)
+                    .then(versionResult => {
+                        expect(200, versionResult);
+
+                        let versionsList = versionResult.data.DescribeApplicationVersionsResponse.DescribeApplicationVersionsResult.ApplicationVersions;
+                        let versionExists = versionsList.length === 1;
+
+                        if (versionExists) {
+                            resolve();
+                            return true;
+                        }
+
+                        if (versionExists === false && tries >= 3) {
+                            throw "Application version doesn't exist";
+                        }
+
+                        tries++;
+                    })
+                    .catch(reject);
+
+                if (versionCheck === true) {
+                    break;
+                }
+            }
+
+        });
+    }).then(() => {
         deployStart = new Date();
         console.log(`Starting deployment of version ${versionLabel} to environment ${environmentName}`);
         return deployBeanstalkVersion(application, environmentName, versionLabel, waitForRecoverySeconds);
